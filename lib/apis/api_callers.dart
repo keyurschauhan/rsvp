@@ -186,5 +186,74 @@ class ApiCallers{
   }
 
 
+  ///======================ADMIN===============================================
+
+  Future<http.Response> getEventList (String token) async {
+    var uri = "${API.baseUrl}/event/list";
+    var url = Uri.parse(uri);
+    Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    log('TOKEN ::: $token===');
+    log('url ::: $url');
+    return await http
+        .get(url, headers: headers)
+        .timeout(Duration(seconds: timeOutSecond));
+  }
+
+  Future<http.Response> addEvent (String token,
+      String name,String location, String date,String lastEditDate, String des) async {
+    var uri = "${API.baseUrl}/event/add";
+    var url = Uri.parse(uri);
+
+    Map<String, String> headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json', // Add this header to specify JSON body
+    };
+
+    var jsonBody = jsonEncode({
+      'name': name,
+      'location': location,
+      'date': date,
+      'last_edit_date': lastEditDate,
+      'code': "16Mi-24",
+      'description': des,
+    });
+
+    log('TOKEN ::: $token');
+    log('URL ::: $url');
+    log('BODY ::: $jsonBody');
+
+    return await http
+        .post(url, headers: headers, body: jsonBody)
+        .timeout(Duration(seconds: timeOutSecond));
+  }
+
+  Future<http.Response> deleteEvent(String token, int eventId) async {
+    var uri = "${API.baseUrl}/event/delete";
+    var url = Uri.parse(uri);
+
+    Map<String, String> headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json', // Add this header to specify JSON body
+    };
+
+    var jsonBody = jsonEncode({
+      'event_id': eventId,
+    });
+
+    log('TOKEN ::: $token');
+    log('URL ::: $url');
+    log('BODY ::: $jsonBody');
+
+    return await http
+        .post(url, headers: headers, body: jsonBody)
+        .timeout(Duration(seconds: timeOutSecond));
+  }
+
+
 
 }

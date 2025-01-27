@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_project/data_models/login_data_model.dart';
 import 'package:my_project/utils/color_const.dart';
 import 'package:my_project/utils/mobile_navigation_manager.dart';
 import 'package:my_project/utils/my_app_text_style.dart';
@@ -20,6 +21,8 @@ class GroupsProvider extends ChangeNotifier{
   void addGroupTap(BuildContext context){
     mobileNavigationManager.goToAddGroupScreen(context);
   }
+
+  LoginDataModel? loginDataModel;
 
   Group? group;
 
@@ -97,7 +100,7 @@ class GroupsProvider extends ChangeNotifier{
     Member(name: 'Mohammed Hassan', isSelected: true, itsNumber: '876543219',profile: ""),
   ];
 
-  Future<void> showEventDetails(BuildContext context, Group group) async {
+  Future<void> showGroupDetails(BuildContext context, Group group) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -208,6 +211,7 @@ class GroupsProvider extends ChangeNotifier{
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    if(loginDataModel!.data!.permission!.groupEdit == "Yes")
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
@@ -237,6 +241,7 @@ class GroupsProvider extends ChangeNotifier{
                     SizedBox(
                       width: 3.w,
                     ),
+                    if(loginDataModel!.data!.permission!.groupDelete == "Yes")
                     ElevatedButton(
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(

@@ -1,12 +1,21 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_project/data_models/login_data_model.dart';
 import 'package:my_project/utils/color_const.dart';
 import 'package:my_project/utils/mobile_navigation_manager.dart';
 import 'package:my_project/utils/my_app_text_style.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
+import '../apis/api_callers.dart';
+import '../data_models/user_event_list_data_model.dart';
+import '../utils/const_util.dart';
+import '../widgets/my_app_progress_bar.dart';
+import '../widgets/widget_utils.dart';
 import 'home_provider.dart';
 
 class EventProvider extends ChangeNotifier {
@@ -22,11 +31,245 @@ class EventProvider extends ChangeNotifier {
   final TextEditingController eventDateController = TextEditingController();
   final TextEditingController eventLastEditableDateController = TextEditingController();
 
-  Event? event;
+  Events? event;
+  List<Events> eventList = [];
 
-  void addEventTap(BuildContext context) {
-    mobileNavigationManager.goToAddEventScreen(context);
+  LoginDataModel? loginDataModel;
+
+  Future<void> getEventList(BuildContext context) async {
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => MyAppPageRefresherDialog(
+        process: () async {
+          final isConnected = await ConstUtil().checkConnection();
+
+          if (!isConnected) {
+            WidgetUtil().showToast(context,"No internet connection.",);
+            notifyListeners();
+            return;
+          }
+
+          try {
+            final response = await ApiCallers().getEventList(
+              loginDataModel!.data!.token.toString(),
+            );
+            if (response.statusCode == 200) {
+              final jsonResponse = jsonDecode(response.body);
+              final eventListData = UserEventListDataModel.fromJson(jsonResponse);
+
+              if (eventListData.status == true && eventListData.events != null) {
+                eventList.clear();
+                eventList.addAll(eventListData.events!);
+                notifyListeners();
+                Navigator.pop(context);
+
+              } else {
+                WidgetUtil().showToast(context, eventListData.message ?? "No events found.",);
+                notifyListeners();
+                Navigator.pop(context);
+
+              }
+            } else {
+              WidgetUtil().showToast(context, "Failed to fetch events.",);
+              notifyListeners();
+              Navigator.pop(context);
+
+
+            }
+          } catch (error) {
+            WidgetUtil().showToast(context,"An error occurred: $error",);
+            notifyListeners();
+            Navigator.pop(context);
+
+
+          }
+
+        },
+      ),
+    );
   }
+
+  Future<void> getEventListWithoutLoader() async {
+    // Check for internet connectivity
+    final isConnected = await ConstUtil().checkConnection();
+    if (!isConnected) {
+      return; // Exit early if no internet connection
+    }
+
+    try {
+      // Call the API to fetch the event list
+      final response = await ApiCallers().getEventList(
+        loginDataModel!.data!.token.toString(),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final eventListData = UserEventListDataModel.fromJson(jsonResponse);
+
+        if (eventListData.status == true && eventListData.events != null) {
+          eventList
+            ..clear()
+            ..addAll(eventListData.events!); // Update the event list
+        } else {
+          eventList.clear(); // Clear the list if no events are found
+        }
+      } else {
+        log("Failed to fetch events. Status Code: ${response.statusCode}");
+      }
+    } catch (error) {
+      log("An error occurred while fetching the event list: $error");
+    } finally {
+      notifyListeners(); // Notify listeners regardless of the result
+    }
+  }
+
+
+  void addEventTap(BuildContext context){
+    mobileNavigationManager.goToAddEventScreen(context,this);
+  }
+
+  String? formattedDate;
+  String? formattedLastDate;
+
+  Future<bool> addEventBtn(BuildContext context) async {
+    try {
+      // Show a dialog with the processing function
+      final dialogResult = await showDialog(
+        context: context,
+        barrierDismissible: false, // Prevent dismissing the dialog by tapping outside
+        builder: (context) => MyAppPageRefresherDialog(
+          process: () async {
+            try {
+              // Make the API call
+              final result = await ApiCallers().addEvent(
+                loginDataModel!.data!.token.toString(),
+                eventNameController.text,
+                eventLocationController.text,
+                formattedDate!,
+                formattedLastDate!,
+                eventDescriptionController.text,
+              );
+
+              // Check for a successful response
+              if (result.statusCode == 200) {
+                final response = jsonDecode(result.body);
+
+                if (response['status'] == true) {
+                  // Success: Show a toast message
+                  WidgetUtil().showToast(context, "Event Added Successfully");
+                  return true;
+                } else {
+                  // Handle errors in the response
+                  final itsError = response['error']['its_number'];
+                  if (itsError is List && itsError.isNotEmpty) {
+                    WidgetUtil().showToastError(
+                      context,
+                      itsError[0] ?? "Invalid credentials.",
+                    );
+                  }
+                  return false;
+                }
+              } else {
+                // Handle unexpected status codes
+                log("Unexpected Status Code: ${result.statusCode}");
+                WidgetUtil().showToastError(
+                  context,
+                  "Unexpected server error. Please try again.",
+                );
+                return false;
+              }
+            } catch (e) {
+              // Handle API call errors
+              log("API Error: $e");
+              WidgetUtil().showToastError(
+                context,
+                "An error occurred while adding the event. Please try again.",
+              );
+              return false;
+            }
+          },
+        ),
+      );
+
+      log("Dialog Result: $dialogResult");
+
+      return dialogResult ?? false; // Return the dialog result or false if null
+    } catch (e) {
+      // Handle unexpected errors
+      log("Unexpected Error: $e");
+      WidgetUtil().showToastError(
+        context,
+        "An unexpected error occurred. Please try again.",
+      );
+      return false;
+    }
+  }
+
+  Future<void> deleteEvent(BuildContext context, int eventId) async {
+    try {
+      // Show a dialog with the processing function
+      final dialogResult = await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => MyAppPageRefresherDialog(
+          process: () async {
+            // Check for internet connectivity
+            final isConnected = await ConstUtil().checkConnection();
+            if (!isConnected) {
+              WidgetUtil().showToast(context, "No internet connection.");
+              return false;
+            }
+
+            try {
+              // Call the API to delete the event
+              final response = await ApiCallers().deleteEvent(
+                loginDataModel!.data!.token.toString(),
+                eventId,
+              );
+
+              log("API Response: ${response.body}");
+
+              if (response.statusCode == 200) {
+                final jsonResponse = jsonDecode(response.body);
+
+                // Check if the response indicates success
+                if (jsonResponse['status'] == true) {
+                  WidgetUtil().showToast(context, jsonResponse['message'] ?? "Event deleted successfully.");
+                  notifyListeners();
+                  await getEventListWithoutLoader();
+                  Navigator.pop(context);
+                  return true;
+                } else {
+                  WidgetUtil().showToast(context, jsonResponse['message'] ?? "Failed to delete the event.");
+                  return false;
+                }
+              } else {
+                // Handle non-200 status codes
+                WidgetUtil().showToastError(context, "Failed to delete the event. Status Code: ${response.statusCode}");
+                return false;
+              }
+            } catch (e) {
+              // Handle any exceptions during the API call
+              log("Error deleting event: $e");
+              WidgetUtil().showToastError(context, "An error occurred: ${e.toString()}");
+              return false;
+            }
+          },
+        ),
+      );
+
+      if (dialogResult == true) {
+        log("Event successfully deleted.");
+      }
+    } catch (e) {
+      // Handle unexpected errors
+      log("Unexpected error: $e");
+      WidgetUtil().showToastError(context, "An unexpected error occurred. Please try again.");
+    }
+  }
+
 
   List<Event> events = [
     Event(
@@ -59,7 +302,7 @@ class EventProvider extends ChangeNotifier {
         ),
   ];
 
-  Future<void> showEventDetails(BuildContext context, Event event) async {
+  Future<void> showEventDetails(BuildContext context, Events event) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -114,7 +357,7 @@ class EventProvider extends ChangeNotifier {
                               width: 3.w,
                             ),
                             Text(
-                              event.name,
+                              event.eventName ?? "-",
                               style: GoogleFonts.poppins(
                                 fontSize: 2.h,
                                 fontWeight: FontWeight.bold,
@@ -128,7 +371,7 @@ class EventProvider extends ChangeNotifier {
 
                         // Event Description
                         Text(
-                          event.description,
+                          event.eventDescription ?? "-",
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.poppins(
@@ -145,7 +388,7 @@ class EventProvider extends ChangeNotifier {
                                 color: Color(0xFF7f6400), size: 20),
                             SizedBox(width: 1.h),
                             Text(
-                              event.date,
+                              event.eventDate ?? "-",
                               style: GoogleFonts.poppins(
                                 fontSize: 1.5.h,
                                 color: Colors.black54,
@@ -163,7 +406,7 @@ class EventProvider extends ChangeNotifier {
                             SizedBox(width: 1.h),
                             Expanded(
                               child: Text(
-                                event.location,
+                                event.eventLocation ?? "-",
                                 style: GoogleFonts.poppins(
                                   fontSize: 1.5.h,
                                   color: Colors.black54,
@@ -184,6 +427,7 @@ class EventProvider extends ChangeNotifier {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    if(loginDataModel!.data!.permission!.eventEdit == "Yes")
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
@@ -216,8 +460,12 @@ class EventProvider extends ChangeNotifier {
                     SizedBox(
                       width: 3.w,
                     ),
+                    if(loginDataModel!.data!.permission!.eventDelete == "Yes")
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        deleteEvent(context, int.parse(event.eventId.toString()));
+
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         shape: RoundedRectangleBorder(

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_project/provider/event_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
+import '../../data_models/user_event_list_data_model.dart';
 import '../../provider/home_provider.dart';
+import '../../utils/sharedprefrence_utils.dart';
 
 class EventScreen extends StatefulWidget {
-  const EventScreen({required this.eventProvider,super.key});
-
-  final EventProvider eventProvider;
+  const EventScreen({super.key});
 
   @override
   State<EventScreen> createState() => _EventScreenState();
@@ -18,10 +19,28 @@ class _EventScreenState extends State<EventScreen> {
 
   //final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    var eventProvider = Provider.of<EventProvider>(context,listen: false);
+
+    SharedPreferenceUtill.getLoginResponse().then((value) {
+      if (value != null) {
+        setState(() {
+          eventProvider.loginDataModel = value;
+        });
+      }
+    }).whenComplete(() {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        eventProvider.getEventList(context);
+      });
+    },);
+  }
 
   @override
   Widget build(BuildContext context) {
-    var eventProvider = widget.eventProvider;
+    var eventProvider = Provider.of<EventProvider>(context);
 
     return Scaffold(
       backgroundColor: eventProvider.myAppColors.white,
@@ -115,6 +134,7 @@ class _EventScreenState extends State<EventScreen> {
                                     ),
                                     textAlign: TextAlign.left, // Align text to the left
                                   ),
+                                  if(eventProvider.loginDataModel?.data!.permission!.eventAdd == "Yes")
                                   FloatingActionButton(
                                     backgroundColor: eventProvider.myAppColors.primaryGolden,
                                     shape: RoundedRectangleBorder(
@@ -137,10 +157,10 @@ class _EventScreenState extends State<EventScreen> {
                                   mainAxisSpacing: 2.h, // Spacing between rows
                                   childAspectRatio: 1.3, // Aspect ratio of the card
                                 ),
-                                itemCount: eventProvider.events.length,
+                                itemCount: eventProvider.eventList.length,
                                 itemBuilder: (context, index) {
-                                  eventProvider.event = eventProvider.events[index];
-                                  return _buildEventCard(eventProvider.event!, eventProvider);
+                                  //eventProvider.event = eventProvider.eventList[index];
+                                  return _buildEventCard(eventProvider.eventList[index], eventProvider);
                                 },
                               ),
                             ),
@@ -158,7 +178,7 @@ class _EventScreenState extends State<EventScreen> {
     );
   }
 
-  Widget _buildEventCard(Event event,EventProvider eventProvider) {
+  Widget _buildEventCard(Events event,EventProvider eventProvider) {
     return InkWell(
       onTap: () {
         //log("LIST :: ${event.toJson()}");
@@ -204,7 +224,7 @@ class _EventScreenState extends State<EventScreen> {
                         width: 35.w,
                         //color: Colors.black54,
                         child: Text(
-                          event.name,
+                          event.eventName ?? "-",
                           textAlign: TextAlign.end,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -227,7 +247,7 @@ class _EventScreenState extends State<EventScreen> {
                           ),
                           SizedBox(width: 1.w),
                           Text(
-                            event.date,
+                            event.eventDate ?? "-",
                             style: GoogleFonts.poppins(
                               fontSize: 1.2.h,
                               color: Colors.black54,

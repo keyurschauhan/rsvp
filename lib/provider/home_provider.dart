@@ -99,6 +99,7 @@ class HomeProvider extends ChangeNotifier {
 
   Future<void> getEventListForUser(BuildContext context) async {
 
+    log("USER:::");
     final isConnected = await ConstUtil().checkConnection();
 
     if (!isConnected) {

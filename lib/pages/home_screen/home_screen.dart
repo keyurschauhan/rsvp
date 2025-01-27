@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }).whenComplete(
       () {
+        if(userHomeProvider.loginDataModel?.data?.isAdmin == 1) return;
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
           userHomeProvider.getEventListForUser(context);
         });
@@ -286,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     runSpacing: 20,
                                     spacing: 15,
                                     children: [
-                                      //if(userHomeProvider.loginDataModel.data.permission.eventAdd)
+                                      if(userHomeProvider.loginDataModel?.data!.permission!.eventView == "Yes")
                                       HomePageDetailsWidget(
                                           value: "Events",
                                           image: "assets/images/groups.png",
@@ -295,6 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             userHomeProvider
                                                 .eventGridTap(context);
                                           }),
+                                      if(userHomeProvider.loginDataModel?.data!.permission!.groupView == "Yes")
                                       HomePageDetailsWidget(
                                         value: "Groups",
                                         isActive: true,
@@ -312,7 +314,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       //
                                       //   },
                                       // ),
-
                                       HomePageDetailsWidget(
                                         value: "Individual Scanning",
                                         image: "assets/images/face-scan.png",
@@ -322,7 +323,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                               .individualScanGridTap(context);
                                         },
                                       ),
-
                                       HomePageDetailsWidget(
                                         value: "Group \nScanning",
                                         isActive: true,
@@ -332,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               .groupScanGridTap(context);
                                         },
                                       ),
-
+                                      if(userHomeProvider.loginDataModel?.data!.permission!.report == "Yes")
                                       HomePageDetailsWidget(
                                         value: "Reports",
                                         image: "assets/images/reports.png",
@@ -517,7 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           CircleAvatar(
                             radius: 40,
                             backgroundColor: homeProvider.loginDataModel?.data?.user?.profileImg != null
-                                ? homeProvider.myAppColors.primaryGolden.withOpacity(0.5)
+                                ? homeProvider.myAppColors.white.withOpacity(0.5)
                                 : Colors.grey.shade300,
                             child: ClipOval(
                               child: homeProvider.loginDataModel?.data?.user?.profileImg != null
@@ -542,20 +542,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   }
                                 },
                                 errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
-                                    "assets/images/pro.jpg",
-                                    fit: BoxFit.cover,
-                                    width: 80,
-                                    height: 80,
-                                  );
+                                  return Icon(Icons.person);
                                 },
                               )
-                                  : Image.asset(
-                                "assets/images/pro.jpg",
-                                fit: BoxFit.cover,
-                                width: 80,
-                                height: 80,
-                              ),
+                                  : null,
                             ),
                           ),
                           if (homeProvider.loginDataModel?.data?.user?.profileImg == null)
@@ -570,15 +560,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            homeProvider.loginDataModel!.data!.user!.name!,
-                            style: GoogleFonts.poppins(
-                                fontSize: 2.h,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600),
+                          SizedBox(
+                            width: 43.w,
+                            child: Text(
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              homeProvider.loginDataModel?.data?.user?.name ?? "-",
+                              style: GoogleFonts.poppins(
+                                  fontSize: 2.h,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600),
+                            ),
                           ),
                           Text(
-                            homeProvider.loginDataModel!.data!.user!.itsNumber!,
+                            homeProvider.loginDataModel?.data?.user?.itsNumber ?? "-",
                             style: GoogleFonts.poppins(
                                 fontSize: 1.5.h,
                                 color: Colors.white,

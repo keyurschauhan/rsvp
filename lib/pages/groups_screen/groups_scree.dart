@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_project/provider/event_provider.dart';
 import 'package:my_project/provider/groups_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+
+import '../../utils/sharedprefrence_utils.dart';
 
 class GroupsScreen extends StatefulWidget {
   const GroupsScreen({required this.groupsProvider,super.key});
@@ -14,9 +17,25 @@ class GroupsScreen extends StatefulWidget {
 }
 
 class _GroupsScreenState extends State<GroupsScreen> {
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    var groupsProvider = Provider.of<GroupsProvider>(context,listen: false);
+
+    SharedPreferenceUtill.getLoginResponse().then((value) {
+      if (value != null) {
+        setState(() {
+          groupsProvider.loginDataModel = value;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    var groupProvider = widget.groupsProvider;
+    var groupProvider =Provider.of<GroupsProvider>(context);
 
     return Scaffold(
       backgroundColor: groupProvider.myAppColors.white,
@@ -110,6 +129,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                     ),
                                     textAlign: TextAlign.left, // Align text to the left
                                   ),
+                                  if(groupProvider.loginDataModel!.data!.permission!.groupAdd == "Yes")
                                   FloatingActionButton(
                                     backgroundColor: groupProvider.myAppColors.primaryGolden,
                                     shape: RoundedRectangleBorder(
@@ -202,7 +222,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
   Widget _buildGroupCard(Group group, GroupsProvider groupsProvider) {
     return InkWell(
       onTap: () {
-        groupsProvider.showEventDetails(context, group);
+        groupsProvider.showGroupDetails(context, group);
       },
       child: Card(
         shape: RoundedRectangleBorder(

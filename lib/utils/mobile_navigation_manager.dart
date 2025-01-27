@@ -87,8 +87,7 @@ class MobileNavigationManager{
     );
   }
 
-  void goToAddEventScreen(BuildContext context){
-    final EventProvider eventProvider = EventProvider();
+  void goToAddEventScreen(BuildContext context,EventProvider eventProvider){
 
     Navigator.push(
       context,
@@ -116,7 +115,7 @@ class MobileNavigationManager{
       context,
       SlideRoute(page: ChangeNotifierProvider.value(
           value: eventProvider,
-          child: EventScreen(eventProvider: eventProvider))), // Slide to SignInScreen
+          child: const EventScreen())), // Slide to SignInScreen
     );
   }
 
